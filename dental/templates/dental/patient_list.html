@@ -1,0 +1,135 @@
+<!-- templates/dental/patient_list.html -->
+{% extends 'dental/base.html' %}
+
+{% block title %}Patients - Dental Clinic{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div>
+            <h1 style="font-size: 2rem; font-weight: 700; color: #2c3e50;">Patients</h1>
+            <p style="color: #6c757d; margin-top: 0.5rem;">Manage your patient records</p>
+        </div>
+        <a href="{% url 'patient_create' %}" class="btn btn-primary">+ New Patient</a>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="card">
+        <form method="get" action="{% url 'patient_list' %}">
+            <div style="display: flex; gap: 1rem;">
+                <input type="text" 
+                       name="q" 
+                       value="{{ query }}" 
+                       placeholder="Search by ID, name, phone, or email..." 
+                       style="flex: 1; padding: 0.75rem 1rem; border: 2px solid #e1e8ed; border-radius: 8px; 
+                              font-size: 1rem; transition: all 0.3s;"
+                       onfocus="this.style.borderColor='#667eea'"
+                       onblur="this.style.borderColor='#e1e8ed'">
+                <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem;">
+                    🔍 Search
+                </button>
+                {% if query %}
+                <a href="{% url 'patient_list' %}" class="btn btn-secondary">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Patients Table -->
+<div class="card">
+    {% if patients %}
+    <div style="margin-bottom: 1rem; color: #6c757d; font-size: 0.9rem;">
+        Found {{ patients|length }} patient{{ patients|length|pluralize }}
+        {% if query %}for "{{ query }}"{% endif %}
+    </div>
+    
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Patient ID</th>
+                    <th>Name</th>
+                    <th>Date of Birth</th>
+                    <th>Gender</th>
+                    <th>Contact</th>
+                    <th>Insurance</th>
+                    <th>Registered</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for patient in patients %}
+                <tr>
+                    <td>
+                        <span style="font-family: monospace; font-weight: 600; color: #667eea;">
+                            {{ patient.patient_id }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'patient_detail' patient.id %}" 
+                           style="color: #2c3e50; text-decoration: none; font-weight: 600; transition: color 0.3s;"
+                           onmouseover="this.style.color='#667eea'"
+                           onmouseout="this.style.color='#2c3e50'">
+                            {{ patient.last_name }} {{ patient.first_name }}
+                        </a>
+                    </td>
+                    <td>{{ patient.date_of_birth|date:"M d, Y" }}</td>
+                    <td>
+                        <span style="padding: 0.25rem 0.5rem; background: #f8f9fa; border-radius: 4px; font-size: 0.85rem;">
+                            {% if patient.gender == 'M' %}♂ Male
+                            {% elif patient.gender == 'F' %}♀ Female
+                            {% else %}⚪ Other{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.9rem;">
+                            <div>📞 {{ patient.phone }}</div>
+                            {% if patient.email %}
+                            <div style="color: #6c757d;">✉️ {{ patient.email }}</div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if patient.insurance_provider %}
+                        <div style="font-size: 0.9rem;">
+                            <div style="font-weight: 500;">{{ patient.insurance_provider }}</div>
+                            <div style="color: #6c757d; font-size: 0.85rem;">{{ patient.insurance_number }}</div>
+                        </div>
+                        {% else %}
+                        <span style="color: #6c757d;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ patient.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <a href="{% url 'patient_detail' patient.id %}" 
+                               class="btn btn-sm btn-primary">
+                                View
+                            </a>
+                            <a href="{% url 'patient_edit' patient.id %}" 
+                               class="btn btn-sm btn-secondary">
+                                Edit
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 4rem 2rem; color: #6c757d;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">👥</div>
+        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">No patients found</h3>
+        {% if query %}
+        <p style="margin-bottom: 1.5rem;">No results for "{{ query }}"</p>
+        <a href="{% url 'patient_list' %}" class="btn btn-secondary">Clear Search</a>
+        {% else %}
+        <p style="margin-bottom: 1.5rem;">Start by adding your first patient</p>
+        <a href="{% url 'patient_create' %}" class="btn btn-primary">+ Add First Patient</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,163 @@
+<!-- templates/dental/dashboard.html -->
+{% extends 'dental/base.html' %}
+
+{% block title %}Dashboard - Dental Clinic{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; font-weight: 700; color: #2c3e50;">Dashboard</h1>
+    <p style="color: #6c757d; margin-top: 0.5rem;">Welcome back! Here's your clinic overview.</p>
+</div>
+
+<!-- Statistics Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Total Patients -->
+    <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <p style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Patients</p>
+                <h2 style="font-size: 2.5rem; font-weight: 700;">{{ total_patients }}</h2>
+            </div>
+            <div style="font-size: 3rem; opacity: 0.3;">👥</div>
+        </div>
+    </div>
+
+    <!-- Today's Appointments -->
+    <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <p style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">Today's Appointments</p>
+                <h2 style="font-size: 2.5rem; font-weight: 700;">{{ today_appointments }}</h2>
+            </div>
+            <div style="font-size: 3rem; opacity: 0.3;">📅</div>
+        </div>
+    </div>
+
+    <!-- Pending Invoices -->
+    <div class="card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <p style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">Pending Invoices</p>
+                <h2 style="font-size: 2.5rem; font-weight: 700;">${{ pending_invoices|floatformat:2 }}</h2>
+            </div>
+            <div style="font-size: 3rem; opacity: 0.3;">💰</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Grid -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Upcoming Appointments -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 class="card-header" style="margin: 0; padding: 0; border: none;">Upcoming Appointments</h2>
+            <a href="{% url 'appointment_create' %}" class="btn btn-primary btn-sm">+ New Appointment</a>
+        </div>
+
+        {% if upcoming_appointments %}
+        <div style="overflow-x: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Patient</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in upcoming_appointments %}
+                    <tr>
+                        <td>{{ appointment.appointment_date|date:"M d, Y" }}</td>
+                        <td>{{ appointment.appointment_time|time:"H:i" }}</td>
+                        <td>
+                            <a href="{% url 'patient_detail' appointment.patient.id %}" 
+                               style="color: #667eea; text-decoration: none; font-weight: 500;">
+                                {{ appointment.patient.last_name }} {{ appointment.patient.first_name }}
+                            </a>
+                        </td>
+                        <td>{{ appointment.reason|truncatewords:5 }}</td>
+                        <td>
+                            <span style="padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 500;
+                                {% if appointment.status == 'confirmed' %}background: #d4edda; color: #155724;
+                                {% elif appointment.status == 'scheduled' %}background: #fff3cd; color: #856404;
+                                {% else %}background: #f8d7da; color: #721c24;{% endif %}">
+                                {{ appointment.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div style="text-align: center; margin-top: 1rem;">
+            <a href="{% url 'appointment_calendar' %}" class="btn btn-secondary btn-sm">View Calendar</a>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 2rem; color: #6c757d;">
+            <p style="font-size: 1.1rem;">📅 No upcoming appointments</p>
+            <p style="font-size: 0.9rem; margin-top: 0.5rem;">Schedule your first appointment</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Patients -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 class="card-header" style="margin: 0; padding: 0; border: none;">Recent Patients</h2>
+            <a href="{% url 'patient_create' %}" class="btn btn-success btn-sm">+ Add Patient</a>
+        </div>
+
+        {% if recent_patients %}
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            {% for patient in recent_patients %}
+            <a href="{% url 'patient_detail' patient.id %}" 
+               style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; 
+                      background: #f8f9fa; border-radius: 8px; text-decoration: none; 
+                      color: #2c3e50; transition: all 0.3s;">
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                            color: white; font-weight: 700; font-size: 1.1rem;">
+                    {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600;">{{ patient.last_name }} {{ patient.first_name }}</div>
+                    <div style="font-size: 0.85rem; color: #6c757d;">{{ patient.patient_id }}</div>
+                </div>
+                <div style="font-size: 0.8rem; color: #6c757d;">
+                    {{ patient.created_at|date:"M d" }}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        <div style="text-align: center; margin-top: 1rem;">
+            <a href="{% url 'patient_list' %}" class="btn btn-secondary btn-sm">View All Patients</a>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 2rem; color: #6c757d;">
+            <p>No patients yet</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="card">
+    <h2 class="card-header">Quick Actions</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <a href="{% url 'patient_create' %}" class="btn btn-primary" style="text-align: center;">
+            👤 New Patient
+        </a>
+        <a href="{% url 'appointment_create' %}" class="btn btn-primary" style="text-align: center;">
+            📅 New Appointment
+        </a>
+        <a href="{% url 'patient_list' %}" class="btn btn-secondary" style="text-align: center;">
+            📋 All Patients
+        </a>
+        <a href="/admin/" class="btn btn-secondary" style="text-align: center;" target="_blank">
+            ⚙️ Admin Panel
+        </a>
+    </div>
+</div>
+{% endblock %}

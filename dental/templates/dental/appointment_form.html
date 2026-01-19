@@ -1,0 +1,99 @@
+<!-- templates/dental/appointment_form.html -->
+{% extends 'dental/base.html' %}
+
+{% block title %}New Appointment - Dental Clinic{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; font-weight: 700; color: #2c3e50;">New Appointment</h1>
+    <p style="color: #6c757d; margin-top: 0.5rem;">Schedule a new appointment for a patient</p>
+</div>
+
+<div class="card" style="max-width: 800px;">
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label for="id_patient" class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                Patient <span style="color: #dc3545;">*</span>
+            </label>
+            {{ form.patient }}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+                <label for="id_appointment_date" class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                    Date <span style="color: #dc3545;">*</span>
+                </label>
+                {{ form.appointment_date }}
+            </div>
+
+            <div class="form-group">
+                <label for="id_appointment_time" class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                    Time <span style="color: #dc3545;">*</span>
+                </label>
+                {{ form.appointment_time }}
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+                <label for="id_duration" class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                    Duration (minutes)
+                </label>
+                {{ form.duration }}
+            </div>
+
+            <div class="form-group">
+                <label for="id_status" class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                    Status
+                </label>
+                {{ form.status }}
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label for="id_reason" class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                Reason <span style="color: #dc3545;">*</span>
+            </label>
+            {{ form.reason }}
+        </div>
+
+        <div class="form-group" style="margin-bottom: 2rem;">
+            <label for="id_notes" class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                Notes
+            </label>
+            {{ form.notes }}
+        </div>
+
+        <div style="display: flex; gap: 1rem; padding-top: 1.5rem; border-top: 2px solid #e1e8ed;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                📅 Create Appointment
+            </button>
+            <a href="{% url 'appointment_calendar' %}" class="btn btn-secondary" style="flex: 1; text-align: center;">
+                ✕ Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        input.classList.add('form-control');
+        input.style.width = '100%';
+        input.style.padding = '0.75rem';
+        input.style.border = '2px solid #e1e8ed';
+        input.style.borderRadius = '8px';
+        input.style.fontSize = '1rem';
+    });
+    
+    document.querySelectorAll('select').forEach(select => {
+        select.style.appearance = 'auto';
+    });
+});
+</script>
+{% endblock %}
+
+

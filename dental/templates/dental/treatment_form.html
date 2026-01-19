@@ -1,0 +1,147 @@
+<!-- templates/dental/treatment_form.html -->
+{% extends 'dental/base.html' %}
+
+{% block title %}New Treatment - {{ patient.last_name }} {{ patient.first_name }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; font-weight: 700; color: #2c3e50;">New Treatment Record</h1>
+    <p style="color: #6c757d; margin-top: 0.5rem;">
+        Adding treatment for {{ patient.last_name }} {{ patient.first_name }} ({{ patient.patient_id }})
+    </p>
+</div>
+
+<div class="card" style="max-width: 900px;">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <!-- Treatment Details -->
+        <div style="margin-bottom: 2rem;">
+            <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e1e8ed;">
+                Treatment Details
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="form-group">
+                    <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                        Treatment Date <span style="color: #dc3545;">*</span>
+                    </label>
+                    {{ form.treatment_date }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                        Tooth Number
+                    </label>
+                    {{ form.tooth_number }}
+                    <small style="color: #6c757d; font-size: 0.85rem;">FDI notation (11-48)</small>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="form-group">
+                    <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                        Procedure Code <span style="color: #dc3545;">*</span>
+                    </label>
+                    {{ form.procedure_code }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                        Procedure Name <span style="color: #dc3545;">*</span>
+                    </label>
+                    {{ form.procedure_name }}
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                    Description <span style="color: #dc3545;">*</span>
+                </label>
+                {{ form.description }}
+            </div>
+        </div>
+
+        <!-- Financial Information -->
+        <div style="margin-bottom: 2rem;">
+            <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e1e8ed;">
+                Financial Information
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
+                <div class="form-group">
+                    <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                        Total Cost <span style="color: #dc3545;">*</span>
+                    </label>
+                    {{ form.cost }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                        Insurance Covered
+                    </label>
+                    {{ form.insurance_covered }}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                        Patient Paid
+                    </label>
+                    {{ form.patient_paid }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Files and Notes -->
+        <div style="margin-bottom: 2rem;">
+            <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e1e8ed;">
+                Files & Notes
+            </h3>
+            
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                    X-Ray Image
+                </label>
+                {{ form.xray_image }}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                    Notes
+                </label>
+                {{ form.notes }}
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div style="display: flex; gap: 1rem; padding-top: 1.5rem; border-top: 2px solid #e1e8ed;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                💾 Save Treatment
+            </button>
+            <a href="{% url 'patient_detail' patient.id %}" class="btn btn-secondary" style="flex: 1; text-align: center;">
+                ✕ Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        input.classList.add('form-control');
+        input.style.width = '100%';
+        input.style.padding = '0.75rem';
+        input.style.border = '2px solid #e1e8ed';
+        input.style.borderRadius = '8px';
+        input.style.fontSize = '1rem';
+    });
+    
+    // File input styling
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) {
+        fileInput.style.padding = '0.5rem';
+    }
+});
+</script>
+{% endblock %}

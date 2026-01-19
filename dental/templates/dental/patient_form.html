@@ -1,0 +1,294 @@
+<!-- templates/dental/patient_form.html -->
+{% extends 'dental/base.html' %}
+
+{% block title %}{% if patient %}Edit Patient{% else %}New Patient{% endif %} - Dental Clinic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+    }
+
+    .form-label.required::after {
+        content: " *";
+        color: #dc3545;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e1e8ed;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        font-family: inherit;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-control.error {
+        border-color: #dc3545;
+    }
+
+    .form-select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        padding-right: 2.5rem;
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .error-message {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+
+    .form-section {
+        margin-bottom: 2rem;
+    }
+
+    .form-section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e1e8ed;
+    }
+
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; font-weight: 700; color: #2c3e50;">
+        {% if patient %}Edit Patient{% else %}New Patient{% endif %}
+    </h1>
+    <p style="color: #6c757d; margin-top: 0.5rem;">
+        {% if patient %}Update patient information{% else %}Add a new patient to the system{% endif %}
+    </p>
+</div>
+
+<div class="card">
+    <form method="post" style="max-width: 900px;">
+        {% csrf_token %}
+        
+        <!-- Basic Information Section -->
+        <div class="form-section">
+            <h2 class="form-section-title">Basic Information</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="id_first_name" class="form-label required">First Name</label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                        {% for error in form.first_name.errors %}
+                            <div class="error-message">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_last_name" class="form-label required">Last Name</label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}
+                        {% for error in form.last_name.errors %}
+                            <div class="error-message">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="id_date_of_birth" class="form-label required">Date of Birth</label>
+                    {{ form.date_of_birth }}
+                    {% if form.date_of_birth.errors %}
+                        {% for error in form.date_of_birth.errors %}
+                            <div class="error-message">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_gender" class="form-label required">Gender</label>
+                    {{ form.gender }}
+                    {% if form.gender.errors %}
+                        {% for error in form.gender.errors %}
+                            <div class="error-message">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Information Section -->
+        <div class="form-section">
+            <h2 class="form-section-title">Contact Information</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="id_phone" class="form-label required">Phone Number</label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}
+                        {% for error in form.phone.errors %}
+                            <div class="error-message">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                    <small style="color: #6c757d; font-size: 0.85rem;">Format: +1234567890 or 1234567890</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_email" class="form-label">Email Address</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        {% for error in form.email.errors %}
+                            <div class="error-message">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_address" class="form-label required">Street Address</label>
+                {{ form.address }}
+                {% if form.address.errors %}
+                    {% for error in form.address.errors %}
+                        <div class="error-message">{{ error }}</div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="id_city" class="form-label required">City</label>
+                    {{ form.city }}
+                    {% if form.city.errors %}
+                        {% for error in form.city.errors %}
+                            <div class="error-message">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_postal_code" class="form-label required">Postal Code</label>
+                    {{ form.postal_code }}
+                    {% if form.postal_code.errors %}
+                        {% for error in form.postal_code.errors %}
+                            <div class="error-message">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Insurance Information Section -->
+        <div class="form-section">
+            <h2 class="form-section-title">Insurance Information</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="id_insurance_provider" class="form-label">Insurance Provider</label>
+                    {{ form.insurance_provider }}
+                    {% if form.insurance_provider.errors %}
+                        {% for error in form.insurance_provider.errors %}
+                            <div class="error-message">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_insurance_number" class="form-label">Insurance Number</label>
+                    {{ form.insurance_number }}
+                    {% if form.insurance_number.errors %}
+                        {% for error in form.insurance_number.errors %}
+                            <div class="error-message">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Notes Section -->
+        <div class="form-section">
+            <h2 class="form-section-title">Additional Notes</h2>
+            
+            <div class="form-group">
+                <label for="id_notes" class="form-label">Notes</label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                    {% for error in form.notes.errors %}
+                        <div class="error-message">{{ error }}</div>
+                    {% endfor %}
+                {% endif %}
+                <small style="color: #6c757d; font-size: 0.85rem;">Any additional information about the patient</small>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div style="display: flex; gap: 1rem; margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #e1e8ed;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                {% if patient %}💾 Update Patient{% else %}➕ Create Patient{% endif %}
+            </button>
+            <a href="{% if patient %}{% url 'patient_detail' patient.id %}{% else %}{% url 'patient_list' %}{% endif %}" 
+               class="btn btn-secondary" style="flex: 1; text-align: center;">
+                ✕ Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Add form control classes to form fields -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add form-control class to all inputs
+    const inputs = document.querySelectorAll('input[type="text"], input[type="email"], input[type="date"], textarea');
+    inputs.forEach(input => {
+        input.classList.add('form-control');
+    });
+    
+    // Add form-select class to select elements
+    const selects = document.querySelectorAll('select');
+    selects.forEach(select => {
+        select.classList.add('form-control', 'form-select');
+    });
+    
+    // Add error class to fields with errors
+    const errorFields = document.querySelectorAll('.error-message');
+    errorFields.forEach(error => {
+        const input = error.previousElementSibling;
+        if (input) {
+            input.classList.add('error');
+        }
+    });
+});
+</script>
+{% endblock %}

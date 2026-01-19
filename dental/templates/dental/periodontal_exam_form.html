@@ -1,0 +1,295 @@
+<!-- templates/dental/periodontal_exam_form.html -->
+{% extends 'dental/base.html' %}
+
+{% block title %}New 歯周検査 - {{ patient.last_name }} {{ patient.first_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .perio-form-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+        margin: 1rem 0;
+    }
+    
+    .perio-form-table th, .perio-form-table td {
+        border: 1px solid #dee2e6;
+        padding: 0.5rem;
+        text-align: center;
+    }
+    
+    .perio-form-table th {
+        background: #f8f9fa;
+        font-weight: 600;
+    }
+    
+    .tooth-header {
+        background: #e9ecef;
+        font-weight: 700;
+    }
+    
+    .depth-input {
+        width: 45px;
+        padding: 0.25rem;
+        text-align: center;
+        border: 2px solid #dee2e6;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    
+    .depth-input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .checkbox-cell {
+        padding: 0.25rem;
+    }
+    
+    .checkbox-cell input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    
+    .surface-section {
+        margin-bottom: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; font-weight: 700; color: #2c3e50;">New 歯周検査 (Periodontal Examination)</h1>
+    <p style="color: #6c757d; margin-top: 0.5rem;">
+        Patient: {{ patient.last_name }} {{ patient.first_name }} ({{ patient.patient_id }})
+    </p>
+</div>
+
+<div class="card">
+    <form method="post">
+        {% csrf_token %}
+        
+        <!-- Basic Information -->
+        <div style="margin-bottom: 2rem;">
+            <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e1e8ed;">
+                Exam Information
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="form-group">
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                        Exam Date <span style="color: #dc3545;">*</span>
+                    </label>
+                    <input type="date" name="exam_date" value="{{ today|date:'Y-m-d' }}" required
+                           style="width: 100%; padding: 0.75rem; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 1rem;">
+                </div>
+                
+                <div class="form-group">
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Notes</label>
+                    <textarea name="notes" rows="3"
+                              style="width: 100%; padding: 0.75rem; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 1rem; resize: vertical;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div style="background: #d1ecf1; color: #0c5460; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border-left: 4px solid #17a2b8;">
+            <strong>📝 Instructions:</strong>
+            <ul style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
+                <li>Enter pocket depth in millimeters (1-12)</li>
+                <li>Check boxes for bleeding (●) or calculus (▲)</li>
+                <li>Leave empty if tooth is missing</li>
+                <li>M = Mesial, C = Central, D = Distal</li>
+            </ul>
+        </div>
+
+        <!-- Upper Jaw - Buccal -->
+        <div class="surface-section">
+            <h3 style="margin-bottom: 1rem;">Upper Jaw (上顎) - Buccal/Labial (頬側/唇側)</h3>
+            <div style="overflow-x: auto;">
+                <table class="perio-form-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Tooth</th>
+                            <th colspan="3">Depth (mm)</th>
+                            <th colspan="3">Bleeding</th>
+                            <th colspan="3">Calculus</th>
+                        </tr>
+                        <tr>
+                            <th>M</th><th>C</th><th>D</th>
+                            <th>M</th><th>C</th><th>D</th>
+                            <th>M</th><th>C</th><th>D</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tooth in upper_teeth %}
+                        <tr>
+                            <td class="tooth-header">{{ tooth }}</td>
+                            <td><input type="number" name="depth_{{ tooth }}_buccal_mesial" class="depth-input" min="1" max="12"></td>
+                            <td><input type="number" name="depth_{{ tooth }}_buccal_middle" class="depth-input" min="1" max="12"></td>
+                            <td><input type="number" name="depth_{{ tooth }}_buccal_distal" class="depth-input" min="1" max="12"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="bleeding_{{ tooth }}_buccal_mesial"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="bleeding_{{ tooth }}_buccal_middle"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="bleeding_{{ tooth }}_buccal_distal"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="calculus_{{ tooth }}_buccal_mesial"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="calculus_{{ tooth }}_buccal_middle"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="calculus_{{ tooth }}_buccal_distal"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Upper Jaw - Lingual -->
+        <div class="surface-section">
+            <h3 style="margin-bottom: 1rem;">Upper Jaw (上顎) - Lingual/Palatal (舌側/口蓋側)</h3>
+            <div style="overflow-x: auto;">
+                <table class="perio-form-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Tooth</th>
+                            <th colspan="3">Depth (mm)</th>
+                            <th colspan="3">Bleeding</th>
+                            <th colspan="3">Calculus</th>
+                        </tr>
+                        <tr>
+                            <th>M</th><th>C</th><th>D</th>
+                            <th>M</th><th>C</th><th>D</th>
+                            <th>M</th><th>C</th><th>D</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tooth in upper_teeth %}
+                        <tr>
+                            <td class="tooth-header">{{ tooth }}</td>
+                            <td><input type="number" name="depth_{{ tooth }}_lingual_mesial" class="depth-input" min="1" max="12"></td>
+                            <td><input type="number" name="depth_{{ tooth }}_lingual_middle" class="depth-input" min="1" max="12"></td>
+                            <td><input type="number" name="depth_{{ tooth }}_lingual_distal" class="depth-input" min="1" max="12"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="bleeding_{{ tooth }}_lingual_mesial"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="bleeding_{{ tooth }}_lingual_middle"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="bleeding_{{ tooth }}_lingual_distal"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="calculus_{{ tooth }}_lingual_mesial"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="calculus_{{ tooth }}_lingual_middle"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="calculus_{{ tooth }}_lingual_distal"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Lower Jaw - Buccal -->
+        <div class="surface-section">
+            <h3 style="margin-bottom: 1rem;">Lower Jaw (下顎) - Buccal/Labial (頬側/唇側)</h3>
+            <div style="overflow-x: auto;">
+                <table class="perio-form-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Tooth</th>
+                            <th colspan="3">Depth (mm)</th>
+                            <th colspan="3">Bleeding</th>
+                            <th colspan="3">Calculus</th>
+                        </tr>
+                        <tr>
+                            <th>M</th><th>C</th><th>D</th>
+                            <th>M</th><th>C</th><th>D</th>
+                            <th>M</th><th>C</th><th>D</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tooth in lower_teeth %}
+                        <tr>
+                            <td class="tooth-header">{{ tooth }}</td>
+                            <td><input type="number" name="depth_{{ tooth }}_buccal_mesial" class="depth-input" min="1" max="12"></td>
+                            <td><input type="number" name="depth_{{ tooth }}_buccal_middle" class="depth-input" min="1" max="12"></td>
+                            <td><input type="number" name="depth_{{ tooth }}_buccal_distal" class="depth-input" min="1" max="12"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="bleeding_{{ tooth }}_buccal_mesial"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="bleeding_{{ tooth }}_buccal_middle"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="bleeding_{{ tooth }}_buccal_distal"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="calculus_{{ tooth }}_buccal_mesial"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="calculus_{{ tooth }}_buccal_middle"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="calculus_{{ tooth }}_buccal_distal"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Lower Jaw - Lingual -->
+        <div class="surface-section">
+            <h3 style="margin-bottom: 1rem;">Lower Jaw (下顎) - Lingual (舌側)</h3>
+            <div style="overflow-x: auto;">
+                <table class="perio-form-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Tooth</th>
+                            <th colspan="3">Depth (mm)</th>
+                            <th colspan="3">Bleeding</th>
+                            <th colspan="3">Calculus</th>
+                        </tr>
+                        <tr>
+                            <th>M</th><th>C</th><th>D</th>
+                            <th>M</th><th>C</th><th>D</th>
+                            <th>M</th><th>C</th><th>D</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tooth in lower_teeth %}
+                        <tr>
+                            <td class="tooth-header">{{ tooth }}</td>
+                            <td><input type="number" name="depth_{{ tooth }}_lingual_mesial" class="depth-input" min="1" max="12"></td>
+                            <td><input type="number" name="depth_{{ tooth }}_lingual_middle" class="depth-input" min="1" max="12"></td>
+                            <td><input type="number" name="depth_{{ tooth }}_lingual_distal" class="depth-input" min="1" max="12"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="bleeding_{{ tooth }}_lingual_mesial"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="bleeding_{{ tooth }}_lingual_middle"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="bleeding_{{ tooth }}_lingual_distal"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="calculus_{{ tooth }}_lingual_mesial"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="calculus_{{ tooth }}_lingual_middle"></td>
+                            <td class="checkbox-cell"><input type="checkbox" name="calculus_{{ tooth }}_lingual_distal"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div style="display: flex; gap: 1rem; padding-top: 2rem; border-top: 2px solid #e1e8ed;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                💾 Save Examination
+            </button>
+            <a href="{% url 'patient_detail' patient.id %}" class="btn btn-secondary" style="flex: 1; text-align: center;">
+                ✕ Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Auto-focus first input
+document.addEventListener('DOMContentLoaded', function() {
+    const firstInput = document.querySelector('.depth-input');
+    if (firstInput) {
+        firstInput.focus();
+    }
+    
+    // Add keyboard navigation
+    const inputs = document.querySelectorAll('.depth-input');
+    inputs.forEach((input, index) => {
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault();
+                const nextIndex = e.shiftKey ? index - 1 : index + 1;
+                if (inputs[nextIndex]) {
+                    inputs[nextIndex].focus();
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

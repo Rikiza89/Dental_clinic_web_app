@@ -1,0 +1,734 @@
+<!-- templates/dental/patient_detail.html -->
+{% extends 'dental/base.html' %}
+{% load dental_extras %}
+
+{% block title %}{{ patient.last_name }} {{ patient.first_name }} - Patient Detail{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tab-container {
+        margin-top: 1.5rem;
+    }
+    
+    .tabs {
+        display: flex;
+        gap: 0.5rem;
+        border-bottom: 2px solid #e1e8ed;
+        margin-bottom: 1.5rem;
+    }
+    
+    .tab {
+        padding: 0.75rem 1.5rem;
+        cursor: pointer;
+        border: none;
+        background: none;
+        color: #6c757d;
+        font-weight: 500;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s;
+    }
+    
+    .tab:hover {
+        color: #667eea;
+        background: #f8f9fa;
+    }
+    
+    .tab.active {
+        color: #667eea;
+        border-bottom-color: #667eea;
+    }
+    
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+
+    .dental-chart {
+        display: flex;
+        justify-content: center;
+        gap: 0.25rem;
+        margin: 1rem 0;
+        flex-wrap: nowrap;
+    }
+
+    .tooth {
+        width: 50px;
+        height: 60px;
+        border: 2px solid #dee2e6;
+        border-radius: 4px 4px 12px 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: all 0.3s;
+        padding: 0.25rem;
+        position: relative;
+    }
+
+    .tooth:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .tooth.editing {
+        box-shadow: 0 0 0 3px #667eea;
+        transform: translateY(-5px);
+        z-index: 10;
+    }
+
+    .tooth-number {
+        font-weight: 600;
+        font-size: 0.75rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .tooth-icon {
+        font-size: 1.5rem;
+    }
+
+    .tooth.healthy {
+        background: #d4edda;
+        border-color: #28a745;
+    }
+
+    .tooth.cavity {
+        background: #fff3cd;
+        border-color: #ffc107;
+    }
+
+    .tooth.filled {
+        background: #d1ecf1;
+        border-color: #17a2b8;
+    }
+
+    .tooth.missing {
+        background: #f8d7da;
+        border-color: #dc3545;
+        opacity: 0.5;
+    }
+
+    .tooth.crown, .tooth.root_canal {
+        background: #e2e3e5;
+        border-color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Patient Header -->
+<div style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+                <h1 style="font-size: 2rem; font-weight: 700; color: #2c3e50;">
+                    {{ patient.last_name }} {{ patient.first_name }}
+                </h1>
+                <span style="font-family: monospace; background: #667eea; color: white; padding: 0.25rem 0.75rem; 
+                             border-radius: 6px; font-size: 0.9rem; font-weight: 600;">
+                    {{ patient.patient_id }}
+                </span>
+            </div>
+            <p style="color: #6c757d;">
+                {{ patient.gender|yesno:"Male,Female,Other" }} • Born {{ patient.date_of_birth|date:"M d, Y" }}
+            </p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <a href="{% url 'patient_edit' patient.id %}" class="btn btn-secondary">✏️ Edit</a>
+            <a href="{% url 'appointment_create' %}?patient_id={{ patient.id }}" class="btn btn-primary">
+                + New Appointment
+            </a>
+        </div>
+    </div>
+
+    <!-- Patient Quick Info -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+        <div class="card" style="padding: 1rem;">
+            <div style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.25rem;">Contact</div>
+            <div style="font-weight: 500;">📞 {{ patient.phone }}</div>
+            {% if patient.email %}
+            <div style="font-weight: 500; margin-top: 0.25rem;">✉️ {{ patient.email }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="card" style="padding: 1rem;">
+            <div style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.25rem;">Address</div>
+            <div style="font-weight: 500;">{{ patient.address }}</div>
+            <div style="font-size: 0.9rem; color: #6c757d;">{{ patient.city }}, {{ patient.postal_code }}</div>
+        </div>
+        
+        <div class="card" style="padding: 1rem;">
+            <div style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.25rem;">Insurance</div>
+            {% if patient.insurance_provider %}
+            <div style="font-weight: 500;">{{ patient.insurance_provider }}</div>
+            <div style="font-size: 0.9rem; color: #6c757d;">{{ patient.insurance_number }}</div>
+            {% else %}
+            <div style="color: #6c757d;">No insurance on file</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="tab-container">
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('overview')">Overview</button>
+        <button class="tab" onclick="switchTab('dental-chart')">Dental Chart</button>
+        <button class="tab" onclick="switchTab('periodontal')">歯周検査</button>
+        <button class="tab" onclick="switchTab('appointments')">Appointments</button>
+        <button class="tab" onclick="switchTab('treatments')">Treatments</button>
+        <button class="tab" onclick="switchTab('invoices')">Invoices</button>
+        <button class="tab" onclick="switchTab('documents')">Documents</button>
+    </div>
+
+    <!-- Overview Tab -->
+    <div id="overview" class="tab-content active">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <!-- Recent Appointments -->
+            <div class="card">
+                <h3 class="card-header">Recent Appointments</h3>
+                {% if appointments %}
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    {% for apt in appointments|slice:":5" %}
+                    <div style="padding: 0.75rem; background: #f8f9fa; border-radius: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <div style="font-weight: 600;">{{ apt.appointment_date|date:"M d, Y" }} at {{ apt.appointment_time|time:"H:i" }}</div>
+                                <div style="font-size: 0.9rem; color: #6c757d; margin-top: 0.25rem;">{{ apt.reason }}</div>
+                            </div>
+                            <span style="padding: 0.25rem 0.5rem; background: white; border-radius: 4px; font-size: 0.8rem;">
+                                {{ apt.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p style="color: #6c757d; text-align: center; padding: 2rem;">No appointments yet</p>
+                {% endif %}
+            </div>
+
+            <!-- Recent Treatments -->
+            <div class="card">
+                <h3 class="card-header">Recent Treatments</h3>
+                {% if treatments %}
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    {% for treatment in treatments|slice:":5" %}
+                    <div style="padding: 0.75rem; background: #f8f9fa; border-radius: 6px;">
+                        <div style="font-weight: 600;">{{ treatment.procedure_name }}</div>
+                        <div style="font-size: 0.9rem; color: #6c757d; margin-top: 0.25rem;">
+                            {{ treatment.treatment_date|date:"M d, Y" }}
+                            {% if treatment.tooth_number %} • Tooth #{{ treatment.tooth_number }}{% endif %}
+                        </div>
+                        <div style="font-weight: 600; color: #667eea; margin-top: 0.5rem;">
+                            ${{ treatment.cost }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p style="color: #6c757d; text-align: center; padding: 2rem;">No treatments yet</p>
+                {% endif %}
+                <div style="margin-top: 1rem;">
+                    <a href="{% url 'treatment_create' patient.id %}" class="btn btn-primary btn-sm" style="width: 100%;">
+                        + Add Treatment
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Summary -->
+        <div class="card" style="margin-top: 1.5rem;">
+            <h3 class="card-header">Financial Summary</h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
+                <div style="text-align: center; padding: 1rem;">
+                    <div style="font-size: 0.9rem; color: #6c757d; margin-bottom: 0.5rem;">Total Charges</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; color: #667eea;">
+                        ${{ total_treatments.total|default:0|floatformat:2 }}
+                    </div>
+                </div>
+                <div style="text-align: center; padding: 1rem;">
+                    <div style="font-size: 0.9rem; color: #6c757d; margin-bottom: 0.5rem;">Total Paid</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; color: #28a745;">
+                        ${{ total_treatments.paid|default:0|floatformat:2 }}
+                    </div>
+                </div>
+                <div style="text-align: center; padding: 1rem;">
+                    <div style="font-size: 0.9rem; color: #6c757d; margin-bottom: 0.5rem;">Outstanding</div>
+                    <div style="font-size: 1.8rem; font-weight: 700; color: #dc3545;">
+                        ${{ outstanding_balance|floatformat:2 }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dental Chart Tab -->
+    <div id="dental-chart" class="tab-content">
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 class="card-header" style="margin: 0; padding: 0; border: none;">Dental Chart (Odontogram)</h3>
+                <button id="editModeBtn" class="btn btn-primary btn-sm" onclick="toggleEditMode()">
+                    ✏️ Edit Mode
+                </button>
+            </div>
+            
+            <div id="editModeNotice" style="display: none; background: #fff3cd; color: #856404; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #ffc107;">
+                <strong>📝 Edit Mode Active</strong> - Click on any tooth to change its status
+            </div>
+            
+            <!-- Upper Jaw -->
+            <div style="margin-bottom: 3rem;">
+                <h4 style="text-align: center; margin-bottom: 0.5rem; color: #6c757d; font-size: 0.9rem;">Upper Jaw (上顎)</h4>
+                <div style="background: #ffe4e1; border-radius: 100px 100px 0 0; padding: 1.5rem 1rem 1rem 1rem; border: 3px solid #ffb6c1;">
+                    <div class="dental-chart">
+                        {% for tooth_num in "18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28"|split:"," %}
+                            {% with tooth=teeth_dict|get_item:tooth_num|default:None %}
+                            <div class="tooth {% if tooth %}{{ tooth.status }}{% else %}healthy{% endif %}" 
+                                 data-tooth-id="{% if tooth %}{{ tooth.id }}{% endif %}"
+                                 data-tooth-number="{{ tooth_num }}"
+                                 data-current-status="{% if tooth %}{{ tooth.status }}{% else %}healthy{% endif %}"
+                                 onclick="editTooth(this)"
+                                 title="Tooth {{ tooth_num }}: {% if tooth %}{{ tooth.get_status_display }}{% else %}Healthy{% endif %}">
+                                <div class="tooth-number" style="font-size: 0.7rem; font-weight: 700; color: #2c3e50;">{{ tooth_num }}</div>
+                                <div class="tooth-icon" style="font-size: 1.5rem;">🦷</div>
+                                <div class="tooth-status-label" style="font-size: 0.65rem; margin-top: 0.15rem; font-weight: 600;">
+                                    {% if tooth %}{{ tooth.get_status_display|slice:":3" }}{% else %}OK{% endif %}
+                                </div>
+                            </div>
+                            {% endwith %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lower Jaw -->
+            <div>
+                <div style="background: #ffe4e1; border-radius: 0 0 100px 100px; padding: 1rem 1rem 1.5rem 1rem; border: 3px solid #ffb6c1; border-top: none;">
+                    <div class="dental-chart">
+                        {% for tooth_num in "48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38"|split:"," %}
+                            {% with tooth=teeth_dict|get_item:tooth_num|default:None %}
+                            <div class="tooth {% if tooth %}{{ tooth.status }}{% else %}healthy{% endif %}" 
+                                 data-tooth-id="{% if tooth %}{{ tooth.id }}{% endif %}"
+                                 data-tooth-number="{{ tooth_num }}"
+                                 data-current-status="{% if tooth %}{{ tooth.status }}{% else %}healthy{% endif %}"
+                                 onclick="editTooth(this)"
+                                 style="border-radius: 12px 12px 4px 4px;"
+                                 title="Tooth {{ tooth_num }}: {% if tooth %}{{ tooth.get_status_display }}{% else %}Healthy{% endif %}">
+                                <div class="tooth-status-label" style="font-size: 0.65rem; margin-bottom: 0.15rem; font-weight: 600;">
+                                    {% if tooth %}{{ tooth.get_status_display|slice:":3" }}{% else %}OK{% endif %}
+                                </div>
+                                <div class="tooth-icon" style="font-size: 1.5rem;">🦷</div>
+                                <div class="tooth-number" style="font-size: 0.7rem; font-weight: 700; color: #2c3e50;">{{ tooth_num }}</div>
+                            </div>
+                            {% endwith %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <h4 style="text-align: center; margin-top: 0.5rem; color: #6c757d; font-size: 0.9rem;">Lower Jaw (下顎)</h4>
+            </div>
+
+            <!-- Legend -->
+            <div style="margin-top: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                <h4 style="margin-bottom: 1rem;">Legend</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 20px; height: 20px; background: #d4edda; border: 2px solid #28a745; border-radius: 4px;"></div>
+                        <span>Healthy</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 20px; height: 20px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 4px;"></div>
+                        <span>Cavity</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 20px; height: 20px; background: #d1ecf1; border: 2px solid #17a2b8; border-radius: 4px;"></div>
+                        <span>Filled</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 20px; height: 20px; background: #f8d7da; border: 2px solid #dc3545; border-radius: 4px;"></div>
+                        <span>Missing</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 20px; height: 20px; background: #e2e3e5; border: 2px solid #6c757d; border-radius: 4px;"></div>
+                        <span>Crown/Root Canal</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Periodontal Exam Tab -->
+    <div id="periodontal" class="tab-content">
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 class="card-header" style="margin: 0; padding: 0; border: none;">歯周検査 (Periodontal Examinations)</h3>
+                <a href="{% url 'periodontal_exam_create' patient.id %}" 
+                   class="btn btn-primary btn-sm">
+                    + New Exam
+                </a>
+            </div>
+            
+            {% if periodontal_exams %}
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                {% for exam in periodontal_exams %}
+                <div style="border: 2px solid #e1e8ed; border-radius: 8px; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
+                        <div>
+                            <div style="font-size: 1.1rem; font-weight: 600; color: #2c3e50;">
+                                {{ exam.exam_date|date:"Y年m月d日" }}
+                            </div>
+                            <div style="font-size: 0.9rem; color: #6c757d; margin-top: 0.25rem;">
+                                👨‍⚕️ Dr. {{ exam.dentist.get_full_name|default:exam.dentist.username }}
+                            </div>
+                        </div>
+                        <a href="{% url 'periodontal_exam_detail' exam.id %}" class="btn btn-sm btn-primary">
+                            View Details
+                        </a>
+                    </div>
+                    
+                    {% if exam.notes %}
+                    <div style="background: #f8f9fa; padding: 0.75rem; border-radius: 6px; margin-top: 0.75rem;">
+                        <div style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.25rem;">Notes:</div>
+                        <div style="font-size: 0.95rem;">{{ exam.notes }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Quick Summary -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e1e8ed;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.85rem; color: #6c757d;">Measurements</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: #667eea;">{{ exam.measurements.count }}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.85rem; color: #6c757d;">Bleeding Points</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: #dc3545;">{{ exam.bleeding_count }}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.85rem; color: #6c757d;">Calculus Sites</div>
+                            <div style="font-size: 1.3rem; font-weight: 700; color: #ffc107;">{{ exam.calculus_count }}</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 4rem 2rem; color: #6c757d;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">📋</div>
+                <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">No Periodontal Exams</h3>
+                <p style="margin-bottom: 1.5rem;">No examinations recorded yet</p>
+                <a href="{% url 'periodontal_exam_create' patient.id %}" 
+                   class="btn btn-primary">
+                    + Create First Exam
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Other tabs content... (appointments, treatments, invoices, documents) -->
+    <div id="appointments" class="tab-content">
+        <div class="card">
+            <h3 class="card-header">All Appointments</h3>
+            <!-- Similar structure as overview but showing all appointments -->
+            <p style="color: #6c757d; padding: 1rem;">Full appointment list coming soon...</p>
+        </div>
+    </div>
+
+    <div id="treatments" class="tab-content">
+        <div class="card">
+            <h3 class="card-header">All Treatments</h3>
+            <p style="color: #6c757d; padding: 1rem;">Full treatment list coming soon...</p>
+        </div>
+    </div>
+
+    <div id="invoices" class="tab-content">
+        <div class="card">
+            <h3 class="card-header">Invoices</h3>
+            <p style="color: #6c757d; padding: 1rem;">Invoice list coming soon...</p>
+        </div>
+    </div>
+
+    <div id="documents" class="tab-content">
+        <div class="card">
+            <h3 class="card-header">Documents</h3>
+            <p style="color: #6c757d; padding: 1rem;">Document list coming soon...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let editMode = false;
+let currentEditingTooth = null;
+
+function switchTab(tabId) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Deactivate all tab buttons
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(tabId).classList.add('active');
+    
+    // Activate clicked tab button
+    event.target.classList.add('active');
+}
+
+function toggleEditMode() {
+    editMode = !editMode;
+    const btn = document.getElementById('editModeBtn');
+    const notice = document.getElementById('editModeNotice');
+    
+    if (editMode) {
+        btn.textContent = '✓ Save & Exit Edit Mode';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-success');
+        notice.style.display = 'block';
+    } else {
+        btn.textContent = '✏️ Edit Mode';
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-primary');
+        notice.style.display = 'none';
+        
+        // Remove any editing highlights
+        document.querySelectorAll('.tooth').forEach(tooth => {
+            tooth.classList.remove('editing');
+        });
+        currentEditingTooth = null;
+    }
+}
+
+function editTooth(toothElement) {
+    if (!editMode) return;
+    
+    // Remove editing class from previous tooth
+    if (currentEditingTooth) {
+        currentEditingTooth.classList.remove('editing');
+    }
+    
+    // Add editing class to current tooth
+    toothElement.classList.add('editing');
+    currentEditingTooth = toothElement;
+    
+    const toothId = toothElement.dataset.toothId;
+    const toothNumber = toothElement.dataset.toothNumber;
+    const currentStatus = toothElement.dataset.currentStatus;
+    
+    // Show status selection modal
+    showToothStatusModal(toothId, toothNumber, currentStatus, toothElement);
+}
+
+function showToothStatusModal(toothId, toothNumber, currentStatus, toothElement) {
+    // Create modal overlay
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    `;
+    
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    `;
+    
+    const statuses = [
+        { value: 'healthy', label: 'Healthy', color: '#d4edda' },
+        { value: 'cavity', label: 'Cavity', color: '#fff3cd' },
+        { value: 'filled', label: 'Filled', color: '#d1ecf1' },
+        { value: 'crown', label: 'Crown', color: '#e2e3e5' },
+        { value: 'root_canal', label: 'Root Canal', color: '#e2e3e5' },
+        { value: 'missing', label: 'Missing', color: '#f8d7da' },
+        { value: 'implant', label: 'Implant', color: '#e2e3e5' },
+        { value: 'bridge', label: 'Bridge', color: '#e2e3e5' }
+    ];
+    
+    modalContent.innerHTML = `
+        <h3 style="margin-bottom: 1rem; color: #2c3e50;">Edit Tooth #${toothNumber}</h3>
+        <p style="color: #6c757d; margin-bottom: 1.5rem;">Select new status:</p>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1.5rem;">
+            ${statuses.map(status => `
+                <button class="status-option" data-status="${status.value}" 
+                        style="padding: 1rem; border: 2px solid ${currentStatus === status.value ? '#667eea' : '#dee2e6'}; 
+                               background: ${status.color}; border-radius: 8px; cursor: pointer; 
+                               font-weight: ${currentStatus === status.value ? '700' : '500'}; 
+                               transition: all 0.3s;"
+                        onmouseover="this.style.transform='scale(1.05)'; this.style.borderColor='#667eea'"
+                        onmouseout="this.style.transform='scale(1)'; this.style.borderColor='${currentStatus === status.value ? '#667eea' : '#dee2e6'}'"
+                        onclick="selectStatus('${status.value}', '${toothId}', '${toothNumber}', this)">
+                    ${status.label}
+                </button>
+            `).join('')}
+        </div>
+        <div style="display: flex; gap: 1rem;">
+            <button onclick="closeModal()" class="btn btn-secondary" style="flex: 1;">Cancel</button>
+        </div>
+    `;
+    
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    
+    // Store modal reference
+    window.currentModal = modal;
+    window.currentToothElement = toothElement;
+}
+
+function selectStatus(newStatus, toothId, toothNumber, buttonElement) {
+    // Highlight selected button
+    document.querySelectorAll('.status-option').forEach(btn => {
+        btn.style.borderWidth = '2px';
+        btn.style.fontWeight = '500';
+    });
+    buttonElement.style.borderWidth = '3px';
+    buttonElement.style.fontWeight = '700';
+    
+    // Update tooth via AJAX
+    updateToothStatus(toothId, toothNumber, newStatus);
+}
+
+function updateToothStatus(toothId, toothNumber, newStatus) {
+    if (!toothId) {
+        alert('Cannot update tooth: Tooth not found in database');
+        closeModal();
+        return;
+    }
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch(`/api/tooth/${toothId}/update/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            status: newStatus
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the tooth element
+            const toothElement = window.currentToothElement;
+            
+            // Remove all status classes
+            toothElement.className = 'tooth ' + newStatus;
+            
+            // Update data attributes
+            toothElement.dataset.currentStatus = newStatus;
+            
+            // Update status label
+            const statusLabel = toothElement.querySelector('.tooth-status-label');
+            if (statusLabel) {
+                statusLabel.textContent = data.status_display.substring(0, 3);
+            }
+            
+            // Update title
+            toothElement.title = `Tooth ${toothNumber}: ${data.status_display}`;
+            
+            // Show success message
+            showNotification('Tooth updated successfully!', 'success');
+            
+            // Close modal
+            closeModal();
+        } else {
+            alert('Error updating tooth: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating tooth. Please try again.');
+    });
+}
+
+function closeModal() {
+    if (window.currentModal) {
+        window.currentModal.remove();
+        window.currentModal = null;
+    }
+    if (currentEditingTooth) {
+        currentEditingTooth.classList.remove('editing');
+        currentEditingTooth = null;
+    }
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        background: ${type === 'success' ? '#d4edda' : '#f8d7da'};
+        color: ${type === 'success' ? '#155724' : '#721c24'};
+        border-left: 4px solid ${type === 'success' ? '#28a745' : '#dc3545'};
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 2000;
+        animation: slideIn 0.3s ease-out;
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Close modal on outside click
+document.addEventListener('click', function(e) {
+    if (window.currentModal && e.target === window.currentModal) {
+        closeModal();
+    }
+});
+</script>
+
+<style>
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+</style>
+{% endblock %}

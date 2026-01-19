@@ -1,0 +1,333 @@
+<!-- templates/dental/appointment_calendar.html -->
+{% extends 'dental/base.html' %}
+
+{% block title %}Appointments Calendar - Dental Clinic{% endblock %}
+
+{% block extra_css %}
+<style>
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .week-nav {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .week-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .day-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        min-height: 200px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: all 0.3s;
+    }
+
+    .day-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .day-card.today {
+        border: 2px solid #667eea;
+        background: linear-gradient(to bottom, #f8f9ff 0%, white 100%);
+    }
+
+    .day-header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #f0f0f0;
+        margin-bottom: 0.75rem;
+    }
+
+    .day-name {
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    .day-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+
+    .day-card.today .day-number {
+        color: #667eea;
+    }
+
+    .appointments-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .appointment-item {
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-left: 3px solid #667eea;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .appointment-item:hover {
+        background: #e9ecef;
+        transform: translateX(2px);
+    }
+
+    .appointment-time {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.25rem;
+    }
+
+    .appointment-patient {
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
+
+    .appointment-item.confirmed {
+        border-left-color: #28a745;
+    }
+
+    .appointment-item.completed {
+        border-left-color: #6c757d;
+        opacity: 0.7;
+    }
+
+    .appointment-item.cancelled {
+        border-left-color: #dc3545;
+        opacity: 0.6;
+    }
+
+    .no-appointments {
+        text-align: center;
+        color: #adb5bd;
+        padding: 2rem 0;
+        font-size: 0.9rem;
+    }
+
+    @media (max-width: 1200px) {
+        .week-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .week-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="calendar-header">
+    <div>
+        <h1 style="font-size: 2rem; font-weight: 700; color: #2c3e50;">Appointments Calendar</h1>
+        <p style="color: #6c757d; margin-top: 0.5rem;">
+            Week of {{ week_dates.0|date:"F d" }} - {{ week_dates.6|date:"F d, Y" }}
+        </p>
+    </div>
+    <div style="display: flex; gap: 1rem;">
+        <a href="{% url 'appointment_create' %}" class="btn btn-primary">
+            + New Appointment
+        </a>
+    </div>
+</div>
+
+<!-- Week Navigation -->
+<div class="card" style="margin-bottom: 2rem;">
+    <div class="week-nav">
+        <a href="?date={{ week_dates.0|date:'Y-m-d'|add:'-7 days' }}" class="btn btn-secondary">
+            ← Previous Week
+        </a>
+        
+        <div style="flex: 1; text-align: center;">
+            <form method="get" style="display: inline-block;">
+                <input type="date" 
+                       name="date" 
+                       value="{{ selected_date|date:'Y-m-d' }}"
+                       class="form-control"
+                       style="display: inline-block; width: auto; padding: 0.5rem 1rem;"
+                       onchange="this.form.submit()">
+            </form>
+        </div>
+        
+        <a href="?date={{ week_dates.6|date:'Y-m-d'|add:'1 day' }}" class="btn btn-secondary">
+            Next Week →
+        </a>
+    </div>
+</div>
+
+<!-- Week Grid -->
+<div class="week-grid">
+    {% for date in week_dates %}
+    <div class="day-card {% if date == selected_date %}today{% endif %}">
+        <div class="day-header">
+            <div class="day-name">{{ date|date:"l" }}</div>
+            <div class="day-number">{{ date|date:"d" }}</div>
+        </div>
+        
+        <div class="appointments-list">
+            {% for apt in appointments %}
+                {% if apt.appointment_date == date %}
+                <div class="appointment-item {{ apt.status }}" 
+                     onclick="window.location.href='{% url 'patient_detail' apt.patient.id %}'">
+                    <div class="appointment-time">{{ apt.appointment_time|time:"H:i" }}</div>
+                    <div class="appointment-patient">{{ apt.patient.last_name }} {{ apt.patient.first_name|slice:":1" }}.</div>
+                    <div style="font-size: 0.75rem; color: #6c757d; margin-top: 0.25rem;">
+                        {{ apt.reason|truncatewords:3 }}
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+            
+            {% if appointments %}
+                {% with has_appointments=False %}
+                    {% for apt in appointments %}
+                        {% if apt.appointment_date == date %}
+                            {% with has_appointments=True %}{% endwith %}
+                        {% endif %}
+                    {% endfor %}
+                {% endwith %}
+            {% endif %}
+            
+            {% with day_has_appointments=False %}
+                {% for apt in appointments %}
+                    {% if apt.appointment_date == date %}
+                        {% with day_has_appointments=True %}{% endwith %}
+                    {% endif %}
+                {% endfor %}
+                {% if not day_has_appointments %}
+                    <div class="no-appointments">No appointments</div>
+                {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Today's Detailed Schedule -->
+<div class="card">
+    <h2 class="card-header">
+        Today's Schedule - {{ selected_date|date:"l, F d, Y" }}
+    </h2>
+    
+    {% if appointments %}
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for apt in appointments %}
+        <div style="display: flex; gap: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; align-items: center;">
+            <div style="min-width: 80px; text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: 700; color: #667eea;">
+                    {{ apt.appointment_time|time:"H:i" }}
+                </div>
+                <div style="font-size: 0.8rem; color: #6c757d;">
+                    {{ apt.duration }} min
+                </div>
+            </div>
+            
+            <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+                    <a href="{% url 'patient_detail' apt.patient.id %}" 
+                       style="font-size: 1.1rem; font-weight: 600; color: #2c3e50; text-decoration: none;">
+                        {{ apt.patient.last_name }} {{ apt.patient.first_name }}
+                    </a>
+                    <span style="font-family: monospace; font-size: 0.85rem; color: #6c757d;">
+                        {{ apt.patient.patient_id }}
+                    </span>
+                </div>
+                <div style="color: #6c757d; margin-bottom: 0.5rem;">{{ apt.reason }}</div>
+                {% if apt.dentist %}
+                <div style="font-size: 0.9rem; color: #6c757d;">
+                    👨‍⚕️ Dr. {{ apt.dentist.get_full_name|default:apt.dentist.username }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end;">
+                <span style="padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 500;
+                    {% if apt.status == 'confirmed' %}background: #d4edda; color: #155724;
+                    {% elif apt.status == 'scheduled' %}background: #fff3cd; color: #856404;
+                    {% elif apt.status == 'completed' %}background: #d1ecf1; color: #0c5460;
+                    {% else %}background: #f8d7da; color: #721c24;{% endif %}">
+                    {{ apt.get_status_display }}
+                </span>
+                
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="{% url 'patient_detail' apt.patient.id %}" class="btn btn-sm btn-primary">
+                        View Patient
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 4rem 2rem; color: #6c757d;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">📅</div>
+        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">No appointments scheduled</h3>
+        <p style="margin-bottom: 1.5rem;">Schedule your first appointment for today</p>
+        <a href="{% url 'appointment_create' %}" class="btn btn-primary">+ New Appointment</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Statistics Card -->
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 2rem;">
+    <div class="card" style="text-align: center; padding: 1.5rem;">
+        <div style="font-size: 2rem; font-weight: 700; color: #667eea;">
+            {{ total_count }}
+        </div>
+        <div style="color: #6c757d; font-size: 0.9rem; margin-top: 0.5rem;">Today's Total</div>
+    </div>
+    
+    <div class="card" style="text-align: center; padding: 1.5rem;">
+        <div style="font-size: 2rem; font-weight: 700; color: #28a745;">
+            {{ confirmed_count }}
+        </div>
+        <div style="color: #6c757d; font-size: 0.9rem; margin-top: 0.5rem;">Confirmed</div>
+    </div>
+    
+    <div class="card" style="text-align: center; padding: 1.5rem;">
+        <div style="font-size: 2rem; font-weight: 700; color: #ffc107;">
+            {{ scheduled_count }}
+        </div>
+        <div style="color: #6c757d; font-size: 0.9rem; margin-top: 0.5rem;">Scheduled</div>
+    </div>
+    
+    <div class="card" style="text-align: center; padding: 1.5rem;">
+        <div style="font-size: 2rem; font-weight: 700; color: #17a2b8;">
+            {{ completed_count }}
+        </div>
+        <div style="color: #6c757d; font-size: 0.9rem; margin-top: 0.5rem;">Completed</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Add form control class
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.querySelector('input[type="date"]');
+    if (dateInput) {
+        dateInput.classList.add('form-control');
+    }
+});
+</script>
+{% endblock %}

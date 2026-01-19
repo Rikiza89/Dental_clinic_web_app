@@ -1,0 +1,381 @@
+<!-- templates/dental/periodontal_exam_detail.html -->
+{% extends 'dental/base.html' %}
+{% load dental_extras %}
+
+{% block title %}歯周検査 - {{ exam.exam_date|date:"Y年m月d日" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .perio-chart {
+        overflow-x: auto;
+        margin: 2rem 0;
+    }
+    
+    .perio-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+    
+    .perio-table th, .perio-table td {
+        border: 1px solid #dee2e6;
+        padding: 0.5rem;
+        text-align: center;
+        min-width: 40px;
+    }
+    
+    .perio-table th {
+        background: #f8f9fa;
+        font-weight: 600;
+    }
+    
+    .tooth-header {
+        background: #e9ecef;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+    
+    .depth-cell {
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+    
+    .depth-normal {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .depth-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .depth-danger {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .bleeding-marker {
+        color: #dc3545;
+        font-weight: 700;
+    }
+    
+    .calculus-marker {
+        color: #ffc107;
+        font-weight: 700;
+    }
+    
+    .comparison-improved {
+        color: #28a745;
+        font-weight: 700;
+    }
+    
+    .comparison-worsened {
+        color: #dc3545;
+        font-weight: 700;
+    }
+    
+    .jaw-section {
+        margin-bottom: 3rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: start;">
+        <div>
+            <h1 style="font-size: 2rem; font-weight: 700; color: #2c3e50;">歯周検査 (Periodontal Examination)</h1>
+            <p style="color: #6c757d; margin-top: 0.5rem;">
+                {{ patient.last_name }} {{ patient.first_name }} ({{ patient.patient_id }})
+            </p>
+            <p style="color: #6c757d; font-size: 0.95rem;">
+                Exam Date: {{ exam.exam_date|date:"Y年m月d日 (l)" }}
+            </p>
+        </div>
+        <a href="{% url 'patient_detail' patient.id %}" class="btn btn-secondary">
+            ← Back to Patient
+        </a>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <div class="card" style="text-align: center; padding: 1.5rem;">
+        <div style="font-size: 0.9rem; color: #6c757d; margin-bottom: 0.5rem;">Total Measurements</div>
+        <div style="font-size: 2.5rem; font-weight: 700; color: #667eea;">{{ exam.measurements.count }}</div>
+    </div>
+    
+    <div class="card" style="text-align: center; padding: 1.5rem;">
+        <div style="font-size: 0.9rem; color: #6c757d; margin-bottom: 0.5rem;">Bleeding Sites (出血)</div>
+        <div style="font-size: 2.5rem; font-weight: 700; color: #dc3545;">
+            {{ exam.measurements.filter.bleeding.count }}
+        </div>
+    </div>
+    
+    <div class="card" style="text-align: center; padding: 1.5rem;">
+        <div style="font-size: 0.9rem; color: #6c757d; margin-bottom: 0.5rem;">Calculus Sites (歯石)</div>
+        <div style="font-size: 2.5rem; font-weight: 700; color: #ffc107;">
+            {{ exam.measurements.filter.calculus.count }}
+        </div>
+    </div>
+</div>
+
+<!-- Comparison Notice -->
+{% if previous_exam %}
+<div style="background: #d1ecf1; color: #0c5460; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border-left: 4px solid #17a2b8;">
+    <strong>📊 Comparison Mode</strong> - Showing changes from previous exam on {{ previous_exam.exam_date|date:"Y年m月d日" }}
+    <br><small>
+        <span class="comparison-improved">↓ = Improved (depth decreased)</span> | 
+        <span class="comparison-worsened">↑ = Worsened (depth increased)</span>
+    </small>
+</div>
+{% endif %}
+
+<!-- Upper Jaw Chart -->
+<div class="card jaw-section">
+    <h3 style="margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 2px solid #e1e8ed;">
+        Upper Jaw (上顎) - Buccal/Labial (頬側/唇側)
+    </h3>
+    
+    <div class="perio-chart">
+        <table class="perio-table">
+            <thead>
+                <tr>
+                    <th rowspan="2">Tooth</th>
+                    <th colspan="3">Pocket Depth (mm)</th>
+                    <th colspan="3">Bleeding</th>
+                    <th colspan="3">Calculus</th>
+                </tr>
+                <tr>
+                    <th>M</th><th>C</th><th>D</th>
+                    <th>M</th><th>C</th><th>D</th>
+                    <th>M</th><th>C</th><th>D</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tooth_num in upper_teeth %}
+                <tr>
+                    <td class="tooth-header">{{ tooth_num }}</td>
+                    {% for pos in positions %}
+                        {% with current=tooth_data|get_item:tooth_num|default:None %}
+                            {% if current %}
+                                {% with m=current.buccal|get_item:pos prev_tooth=previous_data|get_item:tooth_num %}
+                                    {% if m %}
+                                    <td class="depth-cell {% if m.pocket_depth <= 3 %}depth-normal{% elif m.pocket_depth <= 5 %}depth-warning{% else %}depth-danger{% endif %}">
+                                        {{ m.pocket_depth }}
+                                        {% if prev_tooth and prev_tooth.buccal|get_item:pos %}
+                                            {% with prev=prev_tooth.buccal|get_item:pos %}
+                                                {% if m.pocket_depth < prev.pocket_depth %}
+                                                <span class="comparison-improved">↓</span>
+                                                {% elif m.pocket_depth > prev.pocket_depth %}
+                                                <span class="comparison-worsened">↑</span>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% endif %}
+                                    </td>
+                                    {% else %}
+                                    <td>-</td>
+                                    {% endif %}
+                                {% endwith %}
+                            {% else %}
+                            <td>-</td>
+                            {% endif %}
+                        {% endwith %}
+                    {% endfor %}
+                    {% for pos in positions %}
+                        {% with current=tooth_data|get_item:tooth_num %}
+                            {% if current and current.buccal|get_item:pos %}
+                                <td>{% if current.buccal|get_item:pos.bleeding %}<span class="bleeding-marker">●</span>{% endif %}</td>
+                            {% else %}
+                                <td></td>
+                            {% endif %}
+                        {% endwith %}
+                    {% endfor %}
+                    {% for pos in positions %}
+                        {% with current=tooth_data|get_item:tooth_num %}
+                            {% if current and current.buccal|get_item:pos %}
+                                <td>{% if current.buccal|get_item:pos.calculus %}<span class="calculus-marker">▲</span>{% endif %}</td>
+                            {% else %}
+                                <td></td>
+                            {% endif %}
+                        {% endwith %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Upper Jaw Lingual -->
+<div class="card jaw-section">
+    <h3 style="margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 2px solid #e1e8ed;">
+        Upper Jaw (上顎) - Lingual/Palatal (舌側/口蓋側)
+    </h3>
+    
+    <div class="perio-chart">
+        <table class="perio-table">
+            <thead>
+                <tr>
+                    <th rowspan="2">Tooth</th>
+                    <th colspan="3">Pocket Depth (mm)</th>
+                    <th colspan="3">Bleeding</th>
+                    <th colspan="3">Calculus</th>
+                </tr>
+                <tr>
+                    <th>M</th><th>C</th><th>D</th>
+                    <th>M</th><th>C</th><th>D</th>
+                    <th>M</th><th>C</th><th>D</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tooth_num in upper_teeth %}
+                <tr>
+                    <td class="tooth-header">{{ tooth_num }}</td>
+                    {% for pos in positions %}
+                        {% with current=tooth_data|get_item:tooth_num %}
+                            {% if current and current.lingual|get_item:pos %}
+                                {% with m=current.lingual|get_item:pos prev_tooth=previous_data|get_item:tooth_num %}
+                                <td class="depth-cell {% if m.pocket_depth <= 3 %}depth-normal{% elif m.pocket_depth <= 5 %}depth-warning{% else %}depth-danger{% endif %}">
+                                    {{ m.pocket_depth }}
+                                    {% if prev_tooth and prev_tooth.lingual|get_item:pos %}
+                                        {% with prev=prev_tooth.lingual|get_item:pos %}
+                                            {% if m.pocket_depth < prev.pocket_depth %}
+                                            <span class="comparison-improved">↓</span>
+                                            {% elif m.pocket_depth > prev.pocket_depth %}
+                                            <span class="comparison-worsened">↑</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endif %}
+                                </td>
+                                {% endwith %}
+                            {% else %}
+                            <td>-</td>
+                            {% endif %}
+                        {% endwith %}
+                    {% endfor %}
+                    {% for pos in positions %}
+                        {% with current=tooth_data|get_item:tooth_num %}
+                            {% if current and current.lingual|get_item:pos %}
+                                <td>{% if current.lingual|get_item:pos.bleeding %}<span class="bleeding-marker">●</span>{% endif %}</td>
+                            {% else %}
+                                <td></td>
+                            {% endif %}
+                        {% endwith %}
+                    {% endfor %}
+                    {% for pos in positions %}
+                        {% with current=tooth_data|get_item:tooth_num %}
+                            {% if current and current.lingual|get_item:pos %}
+                                <td>{% if current.lingual|get_item:pos.calculus %}<span class="calculus-marker">▲</span>{% endif %}</td>
+                            {% else %}
+                                <td></td>
+                            {% endif %}
+                        {% endwith %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Lower Jaw Charts (similar structure) -->
+<div class="card jaw-section">
+    <h3 style="margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 2px solid #e1e8ed;">
+        Lower Jaw (下顎) - Buccal/Labial (頬側/唇側)
+    </h3>
+    <div class="perio-chart">
+        <table class="perio-table">
+            <thead>
+                <tr>
+                    <th rowspan="2">Tooth</th>
+                    <th colspan="3">Pocket Depth (mm)</th>
+                    <th colspan="3">Bleeding</th>
+                    <th colspan="3">Calculus</th>
+                </tr>
+                <tr>
+                    <th>M</th><th>C</th><th>D</th>
+                    <th>M</th><th>C</th><th>D</th>
+                    <th>M</th><th>C</th><th>D</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tooth_num in lower_teeth %}
+                <tr>
+                    <td class="tooth-header">{{ tooth_num }}</td>
+                    {% for pos in positions %}
+                        {% with current=tooth_data|get_item:tooth_num %}
+                            {% if current and current.buccal|get_item:pos %}
+                                {% with m=current.buccal|get_item:pos %}
+                                <td class="depth-cell {% if m.pocket_depth <= 3 %}depth-normal{% elif m.pocket_depth <= 5 %}depth-warning{% else %}depth-danger{% endif %}">
+                                    {{ m.pocket_depth }}
+                                </td>
+                                {% endwith %}
+                            {% else %}
+                            <td>-</td>
+                            {% endif %}
+                        {% endwith %}
+                    {% endfor %}
+                    {% for pos in positions %}
+                        {% with current=tooth_data|get_item:tooth_num %}
+                            {% if current and current.buccal|get_item:pos %}
+                                <td>{% if current.buccal|get_item:pos.bleeding %}<span class="bleeding-marker">●</span>{% endif %}</td>
+                            {% else %}
+                                <td></td>
+                            {% endif %}
+                        {% endwith %}
+                    {% endfor %}
+                    {% for pos in positions %}
+                        {% with current=tooth_data|get_item:tooth_num %}
+                            {% if current and current.buccal|get_item:pos %}
+                                <td>{% if current.buccal|get_item:pos.calculus %}<span class="calculus-marker">▲</span>{% endif %}</td>
+                            {% else %}
+                                <td></td>
+                            {% endif %}
+                        {% endwith %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Legend -->
+<div class="card">
+    <h4 style="margin-bottom: 1rem;">Legend / 凡例</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+        <div>
+            <strong>Pocket Depth (歯茎深さ):</strong><br>
+            <span class="depth-cell depth-normal" style="display: inline-block; padding: 0.25rem 0.5rem; margin: 0.25rem; border-radius: 4px;">1-3mm: Normal</span><br>
+            <span class="depth-cell depth-warning" style="display: inline-block; padding: 0.25rem 0.5rem; margin: 0.25rem; border-radius: 4px;">4-5mm: Warning</span><br>
+            <span class="depth-cell depth-danger" style="display: inline-block; padding: 0.25rem 0.5rem; margin: 0.25rem; border-radius: 4px;">6+mm: Danger</span>
+        </div>
+        <div>
+            <strong>Markers:</strong><br>
+            <span class="bleeding-marker">●</span> Bleeding on Probing (出血)<br>
+            <span class="calculus-marker">▲</span> Calculus Present (歯石)<br>
+            <strong>M</strong> = Mesial (近心)<br>
+            <strong>C</strong> = Central (中央)<br>
+            <strong>D</strong> = Distal (遠心)
+        </div>
+        {% if previous_exam %}
+        <div>
+            <strong>Comparison:</strong><br>
+            <span class="comparison-improved">↓</span> Improved<br>
+            <span class="comparison-worsened">↑</span> Worsened
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if exam.notes %}
+<div class="card" style="margin-top: 1.5rem;">
+    <h4 style="margin-bottom: 1rem;">Notes</h4>
+    <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px;">
+        {{ exam.notes|linebreaks }}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
