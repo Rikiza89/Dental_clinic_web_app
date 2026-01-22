@@ -5,7 +5,7 @@ from . import views
 urlpatterns = [
     # Dashboard
     path('', views.dashboard, name='dashboard'),
-    path("signup/", signup, name="signup"),
+    path("signup/", views.signup, name="signup"),
     # Patients
     path('patients/', views.patient_list, name='patient_list'),
     path('patients/new/', views.patient_create, name='patient_create'),
@@ -27,3 +27,4 @@ urlpatterns = [
     path('patients/<int:patient_id>/periodontal-exam/new/', views.periodontal_exam_create, name='periodontal_exam_create'),
 
 ]
+
