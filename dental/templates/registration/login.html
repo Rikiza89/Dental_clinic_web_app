@@ -217,7 +217,14 @@
             </form>
 
             <div class="login-footer">
-                <p>© 2024 Dental Clinic Management System</p>
+                <p>
+                    Don’t have an account?
+                    <a href="{% url 'signup' %}" style="color: #667eea; font-weight: 600; text-decoration: none;">
+                        Sign up here
+                    </a>
+                </p>
+            
+                <p style="margin-top: 1rem;">© 2024 Dental Clinic Management System</p>
                 <p style="margin-top: 0.5rem; font-size: 0.85rem;">
                     Built with Django
                 </p>
@@ -225,4 +232,5 @@
         </div>
     </div>
 </body>
+
 </html>
