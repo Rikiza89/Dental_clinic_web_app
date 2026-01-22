@@ -2,3 +2,7 @@ Django
 Pillow 
 python-dateutil 
 reportlab
+gunicorn
+psycopg2-binary 
+dj-database-url 
+whitenoise
